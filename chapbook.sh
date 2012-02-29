@@ -54,4 +54,4 @@ context --batchmode --noconsole $INTERMEDIATE.tex
 
 popd
 mv $TMPDIR/output.pdf "$OUTPUT"
-rm -rf $TMPDIR
+[ -d $TMPDIR ] && rm -rf $TMPDIR
