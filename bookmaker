@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-pdftrimwhite = '/usr/local/texlive/2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl'
-
 import argparse
 from commands import getoutput
 from tempfile import mkdtemp
@@ -51,10 +49,15 @@ def main():
 	typesetups = {'chapbook':'\setuparranging[2UP,doublesided]', 'book':'\setuparranging[2*2,doublesided]'}
 
 	tmpdir = mkdtemp()
+	print tmpdir
 	wd = os.getcwd()
 	getoutput('cp ' + args.input + ' ' + tmpdir + os.sep + 'input.pdf')
 	os.chdir(tmpdir)
 
+	print 'Trimming pages'
+	getoutput('pdfcrop input.pdf cropped.pdf')
+
+	print 'Imposing...'
 	intermediate_tex = tmpdir + os.sep + 'intermediate.tex'
 	intermediate_pdf = tmpdir + os.sep + 'intermediate.pdf'
 	intermediate = open(intermediate_tex, 'w')
@@ -66,23 +69,14 @@ def main():
 \starttext
 ''')
 
-	sys.stdout.write('Trimming page')
-	sys.stdout.flush()
 	page = 1
-	
 	while (page <= npages):
-		page = str(page)
-		sys.stdout.write(' ' + page)
-		sys.stdout.flush()
-		getoutput('perl ' + pdftrimwhite + ' --page=' + page + ' input.pdf')
-		getoutput('mv pdftrimwhite.pdf pdftrimwhite-' + page + '.pdf')
-		intermediate.write ('\externalfigure[pdftrimwhite-' + page + '][factor=fit]\n')
-		page = int(page) + 1
+		intermediate.write('\externalfigure[cropped.pdf][page=' + str(page) + ', factor=fit]\n')
+		page = page + 1
 
 	intermediate.write('\n\stoptext\n')
 	intermediate.close()
 
-	print '\nImposing...'
 	getoutput('context --batchmode --noconsole ' + intermediate_tex)
 
 	os.chdir(wd)
