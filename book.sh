@@ -21,7 +21,7 @@ echo "$PAGES Pages"
 # \setuparranging[2UP]
 cat > $INTERMEDIATE.tex <<HEAD
 \setuppapersize[A5][A4,landscape]
-\setuparranging[2UP]
+\setuparranging[2*2]
 \setuplayout[header=0cm,footer=1mm,width=fit,height=fit,topspace=12.7mm,backspace=12.7mm]
 \setuppagenumbering[location=inright]
 \starttext
