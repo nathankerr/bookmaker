@@ -60,14 +60,8 @@ optional arguments:
 
 Requires Python 2.7
 
-Relies on ConTeXt and its pdftrimwhite.pl script, which relies on ghostscript.
-
-Bookmaker has been tested with the ConTeXt from TexLive 2011.
+Relies on Ghostscript and TexLive 2011 (newer version may also work)
 
 ## Installation
 
 Put bookmaker in your path.
-
-Set pdftrimwhite (in the bookmaker file) to the location of your pdftrimwhite.pl file. For Mac installs of TexLive (2011) the location is:
-
-    pdftrimwhite=/usr/local/texlive/2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl
