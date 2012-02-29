@@ -10,7 +10,7 @@ INPUT="$1"
 OUTPUT="$2"
 
 INTERMEDIATE=output
-TMPDIR=`mktemp -d bookmaker-XXXXX`
+TMPDIR=`mktemp -d --tmpdir bookmaker-XXXXX`
 
 cp "$INPUT" $TMPDIR/input.pdf
 pushd $TMPDIR
