@@ -6,18 +6,18 @@ then
 	exit 65
 fi
 
-INPUT=$1
-OUTPUT=$2
+INPUT="$1"
+OUTPUT="$2"
 
 INTERMEDIATE=output
-TMPDIR=`mktemp -d bookmaker-XXXXX`
+TMPDIR=`mktemp -d --tmpdir bookmaker-XXXXX`
 
-cp $INPUT $TMPDIR
+cp "$INPUT" $TMPDIR/input.pdf
 pushd $TMPDIR
 
 PDFTRIMWHITE=/opt2/texlive-2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl
 #PDFTRIMWHITE=/usr/local/texlive/2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl
-PAGES=`gs -sDEVICE=bbox -dNOPAUSE -dBATCH $INPUT 2<&1|grep -c %%BoundingBox`
+PAGES=`gs -sDEVICE=bbox -dNOPAUSE -dBATCH input.pdf 2<&1|grep -c %%BoundingBox`
 echo "$PAGES Pages"
 
 # Book printing (glued)
@@ -38,7 +38,7 @@ echo -n "Trimming page"
 for i in `seq 1 $PAGES`
 do
 	echo -n " $i"
-	perl $PDFTRIMWHITE --page=$i $INPUT
+	perl $PDFTRIMWHITE --page=$i input.pdf
 	mv pdftrimwhite.pdf pdftrimwhite-$i.pdf
 	echo "\externalfigure[pdftrimwhite-$i][factor=fit]" >> $INTERMEDIATE.tex
 done
@@ -53,5 +53,5 @@ echo "Imposing..."
 context --batchmode --noconsole $INTERMEDIATE.tex
 
 popd
-mv $TMPDIR/output.pdf $OUTPUT
-rm -rf $TMPDIR
+mv $TMPDIR/output.pdf "$OUTPUT"
+[ -d $TMPDIR ] && rm -rf $TMPDIR
