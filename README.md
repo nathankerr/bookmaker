@@ -7,4 +7,12 @@ Books are designed to be perfect bound with 1 sheet signatures. To do this, fold
 
 ## Dependencies
 
-Relies on ConTeXt and its pdftrimwhite.pl script
+Relies on ConTeXt and its pdftrimwhite.pl script, which relies on ghostscript
+
+## Installation
+
+Put the .sh files in your path.
+
+Set PDFTRIMWHITE to the location of your pdftrimwhite.pl file. For Mac installs of TexLive (2011) the location is:
+
+    PDFTRIMWHITE=/usr/local/texlive/2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl

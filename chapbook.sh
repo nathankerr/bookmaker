@@ -10,20 +10,21 @@ INPUT=$1
 INTERMEDIATE=output
 OUTPUT=$2
 
-PDFTRIMWHITE=/usr/local/texlive/2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl
+PDFTRIMWHITE=/opt2/texlive-2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl
+#PDFTRIMWHITE=/usr/local/texlive/2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl
 PAGES=`gs -sDEVICE=bbox -dNOPAUSE -dBATCH $INPUT 2<&1|grep -c %%BoundingBox`
 echo "$PAGES Pages"
 
 # Book printing (glued)
-# \setuparranging[2*2]
+# \setuparranging[2*2,doublesided]
 
 # Chapbook printing (stiched)
-# \setuparranging[2UP]
+# \setuparranging[2UP,doublesided]
 cat > $INTERMEDIATE.tex <<HEAD
 \setuppapersize[A5][A4,landscape]
-\setuparranging[2UP]
+\setuparranging[2UP,doublesided]
 \setuplayout[header=0cm,footer=1mm,width=fit,height=fit,topspace=12.7mm,backspace=12.7mm]
-\setuppagenumbering[location=inright]
+\setuppagenumbering[location=inright,alternative=doublesided]
 \starttext
 
 HEAD
