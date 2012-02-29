@@ -7,8 +7,13 @@ then
 fi
 
 INPUT=$1
-INTERMEDIATE=output
 OUTPUT=$2
+
+INTERMEDIATE=output
+TMPDIR=`mktemp -d bookmaker-XXXXX`
+
+cp $INPUT $TMPDIR
+pushd $TMPDIR
 
 PDFTRIMWHITE=/opt2/texlive-2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl
 #PDFTRIMWHITE=/usr/local/texlive/2011/texmf-dist/scripts/context/perl/pdftrimwhite.pl
@@ -47,6 +52,6 @@ echo
 echo "Imposing..."
 context --batchmode --noconsole $INTERMEDIATE.tex
 
-mv $INTERMEDIATE.pdf $OUTPUT
-
-rm -f pdftrimwhite* $INTERMEDIATE*
+popd
+mv $TMPDIR/output.pdf $OUTPUT
+rm -rf $TMPDIR
