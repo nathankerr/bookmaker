@@ -69,9 +69,9 @@ optional arguments:
 
 ## Requirements and Dependencies
 
-Requires Python 2.7
+Relies on Ghostscript,TexLive 2011 (newer version may also work), and Python.
 
-Relies on Ghostscript and TexLive 2011 (newer version may also work)
+If you have a python older than 2.7, you will need a copy of argparse. You can get a copy from the [latest python standard library]:(http://hg.python.org/cpython/file/2.7/Lib/argparse.py). Put argparse.py in the same directory as the bookmaker script. This method has been tested on RHEL6 which uses python 2.6.6.
 
 ## Installation
 
