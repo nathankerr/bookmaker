@@ -47,22 +47,32 @@ def main():
 		if npages <= 24:
 			args.type = 'chapbook'
 		else:
-			arge.type = 'perfect'
-	print 'Creating a ' + args.type + ' on ' + args.paper + ' paper'
+			args.type = 'perfect'
+	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
+	print 'Creating a PDF for a ' + types[args.type] + ' on ' + args.paper + ' paper'
 
-	print 'Finding Bounding Boxes'
-	documentbox = boundingboxes[0].split()
+	odd_box = boundingboxes[0].split()
+	even_box = boundingboxes[1].split()
 	for page in range(1, npages):
 		box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
-		documentbox[1] = str(min(float(documentbox[1]), float(box[1]))) #left
-		documentbox[2] = str(min(float(documentbox[2]), float(box[2]))) #bottom)
-		documentbox[3] = str(max(float(documentbox[3]), float(box[3]))) #top
-		documentbox[4] = str(max(float(documentbox[4]), float(box[4]))) #right
+		if page + 1 % 2 == 0:
+			# even pages
+			even_box[1] = str(min(float(even_box[1]), float(box[1]))) #left
+			even_box[2] = str(min(float(even_box[2]), float(box[2]))) #bottom)
+			even_box[3] = str(max(float(even_box[3]), float(box[3]))) #top
+			even_box[4] = str(max(float(even_box[4]), float(box[4]))) #right
+		else:
+			# odd pages
+			odd_box[1] = str(min(float(odd_box[1]), float(box[1]))) #left
+			odd_box[2] = str(min(float(odd_box[2]), float(box[2]))) #bottom)
+			odd_box[3] = str(max(float(odd_box[3]), float(box[3]))) #top
+			odd_box[4] = str(max(float(odd_box[4]), float(box[4]))) #right
 
 	print 'Trimming Pages'
 	# --bbox "--bbox "<left> <bottom> <right> <top>""
-	bboxstring = '--bbox "' + documentbox[1] + ' ' + documentbox[2] + ' ' + documentbox[3] + ' ' + documentbox[4] + '"'
-	getoutput('pdfcrop ' + bboxstring + ' input.pdf cropped.pdf')
+	even_bboxstring = '--bbox-even "' + even_box[1] + ' ' + even_box[2] + ' ' + even_box[3] + ' ' + even_box[4] + '"'
+	odd_bboxstring = '--bbox-odd "' + odd_box[1] + ' ' + odd_box[2] + ' ' + odd_box[3] + ' ' + odd_box[4] + '"'
+	getoutput('pdfcrop ' + even_bboxstring + ' ' + odd_bboxstring + ' input.pdf cropped.pdf')
 
 	print 'Imposing Pages'
 	intermediate_tex = tmpdir + os.sep + 'intermediate.tex'
@@ -72,7 +82,7 @@ def main():
 	papersizes = {'a4':'\setuppapersize[A5][A4,landscape]', 'letter':"\definepapersize[halfletter][width=5.5in,height=8.5in]\n\setuppapersize[halfletter][letter,landscape]"}
 	intermediate.write(papersizes[args.paper] + '\n')
 
-	typesetups = {'chapbook':'\setuparranging[2UP,doublesided]', 'book':'\setuparranging[2*2,doublesided]'}
+	typesetups = {'chapbook':'\setuparranging[2UP,doublesided]', 'perfect':'\setuparranging[2*2,doublesided]'}
 	intermediate.write(typesetups[args.type] + '\n')
 
 	intermediate.write('''
