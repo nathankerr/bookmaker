@@ -38,6 +38,11 @@ def trim(string):
 		raise argparse.ArgumentTypeError("must be even-odd, document, or per-page.")
 	return string
 
+def isEmptyPage(bbox):
+	if ((float(bbox[1]) == 0) and (float(bbox[2]) == 0) and (float(bbox[3]) == 0) and (float(bbox[4]) == 0)):
+		return True
+	return False
+
 def main():
 	args = parseargs()
 
@@ -59,10 +64,19 @@ def main():
 	print 'Creating a PDF for a ' + types[args.type] + ' on ' + args.paper + ' paper'
 
 	if(args.trim == 'even-odd'):
-		odd_box = boundingboxes[0].split()
-		even_box = boundingboxes[1].split()
-		for page in range(1, npages):
+		startpage = 0
+		while (isEmptyPage(boundingboxes[startpage].split())):
+			startpage = startpage + 1
+		odd_box = boundingboxes[startpage].split()
+		startpage = startpage + 1
+		while (isEmptyPage(boundingboxes[startpage].split())):
+			startpage = startpage + 1
+		even_box = boundingboxes[startpage].split()
+		startpage = startpage + 1
+		for page in range(startpage, npages):
 			box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
+			if isEmptyPage(box):
+				continue
 			if (page + 1) % 2 == 0:
 				# even pages
 				even_box[1] = str(min(float(even_box[1]), float(box[1]))) #left
@@ -76,9 +90,15 @@ def main():
 				odd_box[3] = str(max(float(odd_box[3]), float(box[3]))) #top
 				odd_box[4] = str(max(float(odd_box[4]), float(box[4]))) #right
 	elif (args.trim == 'document'):
-		documentbox = boundingboxes[0].split()
-		for page in range(1, npages):
+		startpage = 0
+		while (isEmptyPage(boundingboxes[startpage].split())):
+			startpage = startpage + 1
+		documentbox = boundingboxes[startpage].split()
+		startpage = startpage + 1
+		for page in range(startpage, npages):
 			box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
+			if isEmptyPage(box):
+				continue
 			documentbox[1] = str(min(float(documentbox[1]), float(box[1]))) #left
 			documentbox[2] = str(min(float(documentbox[2]), float(box[2]))) #bottom)
 			documentbox[3] = str(max(float(documentbox[3]), float(box[3]))) #top
