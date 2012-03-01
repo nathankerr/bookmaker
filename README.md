@@ -33,6 +33,16 @@ Books are designed to be perfect bound with 1 sheet signatures. To do this, fold
 
 Hamish MacDonald made a tutorial on [perfect bound books.](http://www.hamishmacdonald.com/books/books/DIYbook_ep17.php)
 
+# Trim
+
+Exterior whitespace (margins) are automatically trimmed from the input PDF pages. Different trimming schemes produce different results.
+
+    bookmaker --trim even-odd input.pdf output.pdf
+
+- *even-odd*: Creates document-wide trim setting for both even and odd pages
+- *document*: Creates a document-wide trim setting from all pages
+- *per-page*: Creates a trim setting for every page 
+
 # Printing
 
 All PDFs produced by Bookmaker are meant to be printed using a duplex printer with long-edge flip. Long-edge flip is (usually) the default for duplex printing as it is the setting for full (single) page duplex printing.
@@ -42,7 +52,7 @@ Use your favorite PDF reader to print the produced PDF.
 # Usage
 
 ```
-usage: bookmaker [-h] [--paper PAPER] [--type TYPE] input output
+usage: bookmaker [-h] [--paper PAPER] [--type TYPE] [--trim TRIM] input output
 
 DIY Books from PDFs
 
@@ -54,6 +64,7 @@ optional arguments:
   -h, --help     show this help message and exit
   --paper PAPER  a4 | letter (Default is a4)
   --type TYPE    auto | chapbook | perfect (Default is auto)
+  --trim TRIM    even-odd | document | per-page (Default is even-odd)
 ```
 
 ## Requirements and Dependencies

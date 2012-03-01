@@ -1,1 +1,5 @@
 - handle pdfs with less than 2 pages properly
+- handle blank pages (box is ['%%HiResBoundingBox:', '0.000000', '0.000000', '0.000000', '0.000000']); blank pages mess up left-right and document trim
+
+- combine trimming and imposition:
+pdftrimwhite.pl:290 looks like a good place to start, all I have to do is figure out the offsets and widths and how they interact with the actual page, and then also how to scale the cropped part to fit the page.

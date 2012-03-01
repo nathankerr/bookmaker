@@ -12,6 +12,7 @@ def parseargs():
 
 	parser.add_argument('--paper', type=paper, default='a4', help='a4 | letter (Default is a4)')
 	parser.add_argument('--type', type=type, default='auto', help='auto | chapbook | perfect (Default is auto)')
+	parser.add_argument('--trim', type=trim, default='even-odd', help='even-odd | document | per-page (Default is even-odd)')
 	parser.add_argument('input', help='PDF to convert into a book')
 	parser.add_argument('output', help='Where to store the new book')
 
@@ -29,6 +30,12 @@ def paper(string):
 	string = string.lower()
 	if string not in ['a4', 'letter']:
 		raise argparse.ArgumentTypeError("must be a4 or letter.")
+	return string
+
+def trim(string):
+	string = string.lower()
+	if string not in ['even-odd', 'document', 'per-page']:
+		raise argparse.ArgumentTypeError("must be even-odd, document, or per-page.")
 	return string
 
 def main():
@@ -51,28 +58,44 @@ def main():
 	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
 	print 'Creating a PDF for a ' + types[args.type] + ' on ' + args.paper + ' paper'
 
-	odd_box = boundingboxes[0].split()
-	even_box = boundingboxes[1].split()
-	for page in range(1, npages):
-		box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
-		if page + 1 % 2 == 0:
-			# even pages
-			even_box[1] = str(min(float(even_box[1]), float(box[1]))) #left
-			even_box[2] = str(min(float(even_box[2]), float(box[2]))) #bottom)
-			even_box[3] = str(max(float(even_box[3]), float(box[3]))) #top
-			even_box[4] = str(max(float(even_box[4]), float(box[4]))) #right
-		else:
-			# odd pages
-			odd_box[1] = str(min(float(odd_box[1]), float(box[1]))) #left
-			odd_box[2] = str(min(float(odd_box[2]), float(box[2]))) #bottom)
-			odd_box[3] = str(max(float(odd_box[3]), float(box[3]))) #top
-			odd_box[4] = str(max(float(odd_box[4]), float(box[4]))) #right
+	if(args.trim == 'even-odd'):
+		odd_box = boundingboxes[0].split()
+		even_box = boundingboxes[1].split()
+		for page in range(1, npages):
+			box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
+			if (page + 1) % 2 == 0:
+				# even pages
+				even_box[1] = str(min(float(even_box[1]), float(box[1]))) #left
+				even_box[2] = str(min(float(even_box[2]), float(box[2]))) #bottom)
+				even_box[3] = str(max(float(even_box[3]), float(box[3]))) #top
+				even_box[4] = str(max(float(even_box[4]), float(box[4]))) #right
+			else:
+				# odd pages
+				odd_box[1] = str(min(float(odd_box[1]), float(box[1]))) #left
+				odd_box[2] = str(min(float(odd_box[2]), float(box[2]))) #bottom)
+				odd_box[3] = str(max(float(odd_box[3]), float(box[3]))) #top
+				odd_box[4] = str(max(float(odd_box[4]), float(box[4]))) #right
+	elif (args.trim == 'document'):
+		documentbox = boundingboxes[0].split()
+		for page in range(1, npages):
+			box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
+			documentbox[1] = str(min(float(documentbox[1]), float(box[1]))) #left
+			documentbox[2] = str(min(float(documentbox[2]), float(box[2]))) #bottom)
+			documentbox[3] = str(max(float(documentbox[3]), float(box[3]))) #top
+			documentbox[4] = str(max(float(documentbox[4]), float(box[4]))) #right
+	# Nothing to do for per-page
 
 	print 'Trimming Pages'
 	# --bbox "--bbox "<left> <bottom> <right> <top>""
-	even_bboxstring = '--bbox-even "' + even_box[1] + ' ' + even_box[2] + ' ' + even_box[3] + ' ' + even_box[4] + '"'
-	odd_bboxstring = '--bbox-odd "' + odd_box[1] + ' ' + odd_box[2] + ' ' + odd_box[3] + ' ' + odd_box[4] + '"'
-	getoutput('pdfcrop ' + even_bboxstring + ' ' + odd_bboxstring + ' input.pdf cropped.pdf')
+	if (args.trim == 'even-odd'):
+		even_bboxstring = '--bbox-even "' + even_box[1] + ' ' + even_box[2] + ' ' + even_box[3] + ' ' + even_box[4] + '"'
+		odd_bboxstring = '--bbox-odd "' + odd_box[1] + ' ' + odd_box[2] + ' ' + odd_box[3] + ' ' + odd_box[4] + '"'
+		getoutput('pdfcrop ' + even_bboxstring + ' ' + odd_bboxstring + ' input.pdf cropped.pdf')
+	elif (args.trim == 'document'):
+		bboxstring = '--bbox "' + documentbox[1] + ' ' + documentbox[2] + ' ' + documentbox[3] + ' ' + documentbox[4] + '"'
+		getoutput('pdfcrop ' + bboxstring + ' input.pdf cropped.pdf')
+	else: # per-page
+		getoutput('pdfcrop input.pdf cropped.pdf')
 
 	print 'Imposing Pages'
 	intermediate_tex = tmpdir + os.sep + 'intermediate.tex'
