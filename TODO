@@ -1,1 +1,1 @@
-- remove pdftrimwhite dependency
+- handle pdfs with less than 2 pages properly
