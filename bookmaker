@@ -48,7 +48,7 @@ def main():
 
 	tmpdir = mkdtemp()
 	wd = os.getcwd()
-	getoutput('cp ' + args.input + ' ' + tmpdir + os.sep + 'input.pdf')
+	getoutput('cp "' + args.input + '" ' + tmpdir + os.sep + 'input.pdf')
 	os.chdir(tmpdir)
 
 	print 'Inspecting PDF'
