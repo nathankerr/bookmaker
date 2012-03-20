@@ -129,8 +129,9 @@ def main():
 	intermediate.write(typesetups[args.type] + '\n')
 
 	intermediate.write('''
-\setuplayout[header=0cm,footer=1mm,width=fit,height=fit,topspace=12.7mm,backspace=12.7mm]
-\setuppagenumbering[location=inright,alternative=doublesided]
+\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
+	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
+\setuppagenumbering[location=marginedge,alternative=doublesided]
 \starttext
 ''')
 
