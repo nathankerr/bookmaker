@@ -3,7 +3,7 @@
 import argparse
 from commands import getoutput
 from tempfile import mkdtemp
-import os
+import os, shutil
 import sys
 
 def parseargs():
@@ -126,11 +126,7 @@ def main():
 	getoutput('mv "' + intermediate_pdf + '" "' + args.output + '"')
 
 	# cleanup
-	files = os.listdir(tmpdir)
-	os.chdir(tmpdir)
-	for f in files:
-		os.remove(f)
-	os.rmdir(tmpdir)
+	shutil.rmtree(tmpdir)
 
 	print 'Done'
 
