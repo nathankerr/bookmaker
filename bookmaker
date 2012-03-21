@@ -75,8 +75,8 @@ def main():
 	boxes = [map(float, bboxline.split()[1:]) for bboxline in boundingboxes]
 	if(args.trim == 'even-odd'):
 		# compound bounding box of all non-empty odd/even pages
-		odd_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[1::2])) 
-		even_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[0::2]))
+		even_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[1::2])) 
+		odd_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[0::2]))
 	elif (args.trim == 'document'):
 		# compound bounding box of all non-empty pages
 		documentbox = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes))
@@ -104,7 +104,8 @@ def main():
 	intermediate.write("%s\n" % typesetups[args.type])
 
 	intermediate.write('''
-\setuplayout[header=0cm,footer=1mm,width=fit,height=fit,topspace=12.7mm,backspace=12.7mm]
+\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
+	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
 \setuppagenumbering[location=inright,alternative=doublesided]
 \starttext
 ''')
