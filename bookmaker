@@ -2,7 +2,7 @@
 
 import argparse
 from tempfile import mkdtemp
-import os, shutil, commands
+import os, shutil, commands, itertools
 import sys
 
 def parseargs():
@@ -10,7 +10,7 @@ def parseargs():
 	parser = argparse.ArgumentParser(description='DIY Books from PDFs')
 
 	parser.add_argument('--paper', type=paper, default='a4', help='a4 | letter (Default is a4)')
-	parser.add_argument('--type', type=type, default='auto', help='auto | chapbook | perfect (Default is auto)')
+	parser.add_argument('--type', type=btype, default='auto', help='auto | chapbook | perfect (Default is auto)')
 	parser.add_argument('--trim', type=trim, default='even-odd', help='even-odd | document | per-page (Default is even-odd)')
 	parser.add_argument('input', help='PDF to convert into a book')
 	parser.add_argument('output', help='Where to store the new book')
@@ -24,7 +24,7 @@ def getoutput(cmd):
 	return output
 
 # validates book type selection
-def type(string):
+def btype(string):
 	string = string.lower()
 	if string not in ['auto', 'chapbook', 'perfect']:
 		raise argparse.ArgumentTypeError("must be auto, chapbook, or perfect.")
@@ -43,21 +43,24 @@ def trim(string):
 		raise argparse.ArgumentTypeError("must be even-odd, document, or per-page.")
 	return string
 
+def calc_bbox(boxes):
+	# consume all boxes element by element and calculate min/max of each row
+	return list(itertools.imap(min, *boxes))[:2] + list(itertools.imap(max, *boxes))[2:]
+
 def isEmptyPage(bbox):
-	if ((float(bbox[1]) == 0) and (float(bbox[2]) == 0) and (float(bbox[3]) == 0) and (float(bbox[4]) == 0)):
-		return True
-	return False
+	return bbox == [0.0, 0.0, 0.0, 0.0]
 
 def main():
 	args = parseargs()
 
 	tmpdir = mkdtemp()
+	shutil.copyfile(args.input, os.path.join(tmpdir, 'input.pdf'))
+
 	wd = os.getcwd()
-	getoutput('cp "' + args.input + '" ' + tmpdir + os.sep + 'input.pdf')
 	os.chdir(tmpdir)
 
 	print 'Inspecting PDF'
-	boundingboxes = getoutput('gs -sDEVICE=bbox -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
+	boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
 	npages = len(boundingboxes)
 	
 	if args.type == 'auto':
@@ -66,90 +69,56 @@ def main():
 		else:
 			args.type = 'perfect'
 	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
-	print 'Creating a PDF for a ' + types[args.type] + ' on ' + args.paper + ' paper'
+	print 'Creating a PDF for a %s on %s paper' % (types[args.type], args.paper)
 
+	# drop %BoundingBox field and convert rest to float
+	boxes = [map(float, bboxline.split()[1:]) for bboxline in boundingboxes]
 	if(args.trim == 'even-odd'):
-		startpage = 0
-		while (isEmptyPage(boundingboxes[startpage].split())):
-			startpage = startpage + 1
-		odd_box = boundingboxes[startpage].split()
-		startpage = startpage + 1
-		while (isEmptyPage(boundingboxes[startpage].split())):
-			startpage = startpage + 1
-		even_box = boundingboxes[startpage].split()
-		startpage = startpage + 1
-		for page in range(startpage, npages):
-			box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
-			if isEmptyPage(box):
-				continue
-			if (page + 1) % 2 == 0:
-				# even pages
-				even_box[1] = str(min(float(even_box[1]), float(box[1]))) #left
-				even_box[2] = str(min(float(even_box[2]), float(box[2]))) #bottom)
-				even_box[3] = str(max(float(even_box[3]), float(box[3]))) #top
-				even_box[4] = str(max(float(even_box[4]), float(box[4]))) #right
-			else:
-				# odd pages
-				odd_box[1] = str(min(float(odd_box[1]), float(box[1]))) #left
-				odd_box[2] = str(min(float(odd_box[2]), float(box[2]))) #bottom)
-				odd_box[3] = str(max(float(odd_box[3]), float(box[3]))) #top
-				odd_box[4] = str(max(float(odd_box[4]), float(box[4]))) #right
+		# compound bounding box of all non-empty odd/even pages
+		odd_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[1::2])) 
+		even_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[0::2]))
 	elif (args.trim == 'document'):
-		startpage = 0
-		while (isEmptyPage(boundingboxes[startpage].split())):
-			startpage = startpage + 1
-		documentbox = boundingboxes[startpage].split()
-		startpage = startpage + 1
-		for page in range(startpage, npages):
-			box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
-			if isEmptyPage(box):
-				continue
-			documentbox[1] = str(min(float(documentbox[1]), float(box[1]))) #left
-			documentbox[2] = str(min(float(documentbox[2]), float(box[2]))) #bottom)
-			documentbox[3] = str(max(float(documentbox[3]), float(box[3]))) #top
-			documentbox[4] = str(max(float(documentbox[4]), float(box[4]))) #right
+		# compound bounding box of all non-empty pages
+		documentbox = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes))
 	# Nothing to do for per-page
 
 	print 'Trimming Pages'
 	# --bbox "--bbox "<left> <bottom> <right> <top>""
 	if (args.trim == 'even-odd'):
-		even_bboxstring = '--bbox-even "' + even_box[1] + ' ' + even_box[2] + ' ' + even_box[3] + ' ' + even_box[4] + '"'
-		odd_bboxstring = '--bbox-odd "' + odd_box[1] + ' ' + odd_box[2] + ' ' + odd_box[3] + ' ' + odd_box[4] + '"'
-		getoutput('pdfcrop ' + even_bboxstring + ' ' + odd_bboxstring + ' input.pdf cropped.pdf')
+		crop_str = '--bbox-even "%f %f %f %f" --bbox-odd "%f %f %f %f"' % tuple(even_box + odd_box)
 	elif (args.trim == 'document'):
-		bboxstring = '--bbox "' + documentbox[1] + ' ' + documentbox[2] + ' ' + documentbox[3] + ' ' + documentbox[4] + '"'
-		getoutput('pdfcrop ' + bboxstring + ' input.pdf cropped.pdf')
+		crop_str = '--bbox "%f %f %f %f"' % tuple(documentbox)
 	else: # per-page
-		getoutput('pdfcrop input.pdf cropped.pdf')
-
+		crop_str = ""
+	getoutput('pdfcrop --restricted %s input.pdf cropped.pdf' % crop_str)
+	
 	print 'Imposing Pages'
-	intermediate_tex = tmpdir + os.sep + 'intermediate.tex'
-	intermediate_pdf = tmpdir + os.sep + 'intermediate.pdf'
+	intermediate_tex = os.path.join(tmpdir, 'intermediate.tex')
+	intermediate_pdf = os.path.join(tmpdir, 'intermediate.pdf')
 	intermediate = open(intermediate_tex, 'w')
 
 	papersizes = {'a4':'\setuppapersize[A5][A4,landscape]', 'letter':"\definepapersize[halfletter][width=5.5in,height=8.5in]\n\setuppapersize[halfletter][letter,landscape]"}
-	intermediate.write(papersizes[args.paper] + '\n')
+	intermediate.write("%s\n" % papersizes[args.paper])
 
 	typesetups = {'chapbook':'\setuparranging[2UP,doublesided]', 'perfect':'\setuparranging[2*2,doublesided]'}
-	intermediate.write(typesetups[args.type] + '\n')
+	intermediate.write("%s\n" % typesetups[args.type])
 
 	intermediate.write('''
-\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
-	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
-\setuppagenumbering[location=marginedge,alternative=doublesided]
+\setuplayout[header=0cm,footer=1mm,width=fit,height=fit,topspace=12.7mm,backspace=12.7mm]
+\setuppagenumbering[location=inright,alternative=doublesided]
 \starttext
 ''')
 
-	for page in range(1, npages + 1):
-		intermediate.write('\externalfigure[cropped.pdf][page=' + str(page) + ', factor=fit]\n')
+	for page in xrange(1, npages + 1):
+		intermediate.write('\externalfigure[cropped.pdf][page=%d, factor=fit]\n' % page)
 
 	intermediate.write('\n\stoptext\n')
 	intermediate.close()
 
-	getoutput('context --batchmode --noconsole ' + intermediate_tex)
+	getoutput('context --paranoid --batchmode --noconsole %s' % intermediate_tex)
 
 	os.chdir(wd)
-	getoutput('mv "' + intermediate_pdf + '" "' + args.output + '"')
+	shutil.move(intermediate_pdf, args.output)
 
 	# cleanup
 	shutil.rmtree(tmpdir)
