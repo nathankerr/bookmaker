@@ -2,7 +2,7 @@
 
 import argparse
 from tempfile import mkdtemp
-import os, shutil, commands
+import os, shutil, commands, itertools
 import sys
 
 def parseargs():
@@ -43,6 +43,10 @@ def trim(string):
 		raise argparse.ArgumentTypeError("must be even-odd, document, or per-page.")
 	return string
 
+def calc_bbox(boxes):
+	# consume all boxes element by element and calculate min/max of each row
+	return list(itertools.imap(min, *boxes))[:2] + list(itertools.imap(max, *boxes))[2:]
+
 def main():
 	args = parseargs()
 
@@ -64,45 +68,25 @@ def main():
 	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
 	print 'Creating a PDF for a %s on %s paper' % (types[args.type], args.paper)
 
+	# drop %BoundingBox field and convert rest to float
+	boxes = [map(float, bboxline.split()[1:]) for bboxline in boundingboxes]
 	if(args.trim == 'even-odd'):
-		odd_box = map(float, boundingboxes[0].split()[1:])
-		even_box = map(float, boundingboxes[1].split()[1:])
-		for page in xrange(1, npages):
-			box = map(float, boundingboxes[page].split()[1:]) # [134, 127, 482, 677]
-			if (page + 1) % 2 == 0:
-				# even pages
-				even_box[0] = min(even_box[0], box[0]) #left
-				even_box[1] = min(even_box[1], box[1]) #bottom
-				even_box[2] = max(even_box[2], box[2]) #top
-				even_box[3] = max(even_box[3], box[3]) #right
-			else:
-				# odd pages
-				odd_box[0] = min(odd_box[0], box[0]) #left
-				odd_box[1] = min(odd_box[1], box[1]) #bottom
-				odd_box[2] = max(odd_box[2], box[2]) #top
-				odd_box[3] = max(odd_box[3], box[3]) #right
+		odd_box = calc_bbox(boxes[1::2]) # only odd elements
+		even_box = calc_bbox(boxes[0::2]) # only even elements
 	elif (args.trim == 'document'):
-		documentbox = map(float, boundingboxes[0].split()[1:])
-		for page in xrange(1, npages):
-			box = map(float, boundingboxes[page].split()[1:]) # [134, 127, 482, 677]
-			documentbox[0] = min(documentbox[0], box[0]) #left
-			documentbox[1] = min(documentbox[1], box[1]) #bottom
-			documentbox[2] = max(documentbox[2], box[2]) #top
-			documentbox[3] = max(documentbox[3], box[3]) #right
+		documentbox = calc_bbox(boxes)
 	# Nothing to do for per-page
 
 	print 'Trimming Pages'
 	# --bbox "--bbox "<left> <bottom> <right> <top>""
 	if (args.trim == 'even-odd'):
-		even_bboxstring = '--bbox-even "%f %f %f %f"' % tuple(even_box)
-		odd_bboxstring = '--bbox-odd "%f %f %f %f"' % tuple(odd_box)
-		getoutput('pdfcrop --restricted %s %s input.pdf cropped.pdf' % (even_bboxstring, odd_bboxstring))
+		crop_str = '--bbox-even "%f %f %f %f" --bbox-odd "%f %f %f %f"' % tuple(even_box + odd_box)
 	elif (args.trim == 'document'):
-		bboxstring = '--bbox "%f %f %f %f"' % tuple(documentbox)
-		getoutput('pdfcrop --restricted %s input.pdf cropped.pdf' % bboxstring)
+		crop_str = '--bbox "%f %f %f %f"' % tuple(documentbox)
 	else: # per-page
-		getoutput('pdfcrop --restricted input.pdf cropped.pdf')
-
+		crop_str = ""
+	getoutput('pdfcrop --restricted %s input.pdf cropped.pdf' % crop_str)
+	
 	print 'Imposing Pages'
 	intermediate_tex = os.path.join(tmpdir, 'intermediate.tex')
 	intermediate_pdf = os.path.join(tmpdir, 'intermediate.pdf')
@@ -120,7 +104,7 @@ def main():
 \starttext
 ''')
 
-	for page in range(1, npages + 1):
+	for page in xrange(1, npages + 1):
 		intermediate.write('\externalfigure[cropped.pdf][page=%d, factor=fit]\n' % page)
 
 	intermediate.write('\n\stoptext\n')
