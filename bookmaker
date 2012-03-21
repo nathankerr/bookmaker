@@ -53,7 +53,7 @@ def main():
 	os.chdir(tmpdir)
 
 	print 'Inspecting PDF'
-	boundingboxes = getoutput('gs -sDEVICE=bbox -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
+	boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
 	npages = len(boundingboxes)
 	
 	if args.type == 'auto':
@@ -96,12 +96,12 @@ def main():
 	if (args.trim == 'even-odd'):
 		even_bboxstring = '--bbox-even "%f %f %f %f"' % tuple(even_box)
 		odd_bboxstring = '--bbox-odd "%f %f %f %f"' % tuple(odd_box)
-		getoutput('pdfcrop %s %s input.pdf cropped.pdf' % (even_bboxstring, odd_bboxstring))
+		getoutput('pdfcrop --restricted %s %s input.pdf cropped.pdf' % (even_bboxstring, odd_bboxstring))
 	elif (args.trim == 'document'):
 		bboxstring = '--bbox "%f %f %f %f"' % tuple(documentbox)
-		getoutput('pdfcrop %s input.pdf cropped.pdf' % bboxstring)
+		getoutput('pdfcrop --restricted %s input.pdf cropped.pdf' % bboxstring)
 	else: # per-page
-		getoutput('pdfcrop input.pdf cropped.pdf')
+		getoutput('pdfcrop --restricted input.pdf cropped.pdf')
 
 	print 'Imposing Pages'
 	intermediate_tex = os.path.join(tmpdir, 'intermediate.tex')
@@ -126,7 +126,7 @@ def main():
 	intermediate.write('\n\stoptext\n')
 	intermediate.close()
 
-	getoutput('context --batchmode --noconsole %s' % intermediate_tex)
+	getoutput('context --paranoid --batchmode --noconsole %s' % intermediate_tex)
 
 	os.chdir(wd)
 	shutil.move(intermediate_pdf, args.output)
