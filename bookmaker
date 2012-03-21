@@ -10,7 +10,7 @@ def parseargs():
 	parser = argparse.ArgumentParser(description='DIY Books from PDFs')
 
 	parser.add_argument('--paper', type=paper, default='a4', help='a4 | letter (Default is a4)')
-	parser.add_argument('--type', type=type, default='auto', help='auto | chapbook | perfect (Default is auto)')
+	parser.add_argument('--type', type=btype, default='auto', help='auto | chapbook | perfect (Default is auto)')
 	parser.add_argument('--trim', type=trim, default='even-odd', help='even-odd | document | per-page (Default is even-odd)')
 	parser.add_argument('input', help='PDF to convert into a book')
 	parser.add_argument('output', help='Where to store the new book')
@@ -24,7 +24,7 @@ def getoutput(cmd):
 	return output
 
 # validates book type selection
-def type(string):
+def btype(string):
 	string = string.lower()
 	if string not in ['auto', 'chapbook', 'perfect']:
 		raise argparse.ArgumentTypeError("must be auto, chapbook, or perfect.")
@@ -47,8 +47,9 @@ def main():
 	args = parseargs()
 
 	tmpdir = mkdtemp()
+	shutil.copyfile(args.input, os.path.join(tmpdir, 'input.pdf'))
+
 	wd = os.getcwd()
-	getoutput('cp ' + args.input + ' ' + tmpdir + os.sep + 'input.pdf')
 	os.chdir(tmpdir)
 
 	print 'Inspecting PDF'
@@ -61,57 +62,57 @@ def main():
 		else:
 			args.type = 'perfect'
 	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
-	print 'Creating a PDF for a ' + types[args.type] + ' on ' + args.paper + ' paper'
+	print 'Creating a PDF for a %s on %s paper' % (types[args.type], args.paper)
 
 	if(args.trim == 'even-odd'):
-		odd_box = boundingboxes[0].split()
-		even_box = boundingboxes[1].split()
-		for page in range(1, npages):
-			box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
+		odd_box = map(float, boundingboxes[0].split()[1:])
+		even_box = map(float, boundingboxes[1].split()[1:])
+		for page in xrange(1, npages):
+			box = map(float, boundingboxes[page].split()[1:]) # [134, 127, 482, 677]
 			if (page + 1) % 2 == 0:
 				# even pages
-				even_box[1] = str(min(float(even_box[1]), float(box[1]))) #left
-				even_box[2] = str(min(float(even_box[2]), float(box[2]))) #bottom)
-				even_box[3] = str(max(float(even_box[3]), float(box[3]))) #top
-				even_box[4] = str(max(float(even_box[4]), float(box[4]))) #right
+				even_box[0] = min(even_box[0], box[0]) #left
+				even_box[1] = min(even_box[1], box[1]) #bottom
+				even_box[2] = max(even_box[2], box[2]) #top
+				even_box[3] = max(even_box[3], box[3]) #right
 			else:
 				# odd pages
-				odd_box[1] = str(min(float(odd_box[1]), float(box[1]))) #left
-				odd_box[2] = str(min(float(odd_box[2]), float(box[2]))) #bottom)
-				odd_box[3] = str(max(float(odd_box[3]), float(box[3]))) #top
-				odd_box[4] = str(max(float(odd_box[4]), float(box[4]))) #right
+				odd_box[0] = min(odd_box[0], box[0]) #left
+				odd_box[1] = min(odd_box[1], box[1]) #bottom
+				odd_box[2] = max(odd_box[2], box[2]) #top
+				odd_box[3] = max(odd_box[3], box[3]) #right
 	elif (args.trim == 'document'):
-		documentbox = boundingboxes[0].split()
-		for page in range(1, npages):
-			box = boundingboxes[page].split() # ['%%BoundingBox:', '134', '127', '482', '677']
-			documentbox[1] = str(min(float(documentbox[1]), float(box[1]))) #left
-			documentbox[2] = str(min(float(documentbox[2]), float(box[2]))) #bottom)
-			documentbox[3] = str(max(float(documentbox[3]), float(box[3]))) #top
-			documentbox[4] = str(max(float(documentbox[4]), float(box[4]))) #right
+		documentbox = map(float, boundingboxes[0].split()[1:])
+		for page in xrange(1, npages):
+			box = map(float, boundingboxes[page].split()[1:]) # [134, 127, 482, 677]
+			documentbox[0] = min(documentbox[0], box[0]) #left
+			documentbox[1] = min(documentbox[1], box[1]) #bottom
+			documentbox[2] = max(documentbox[2], box[2]) #top
+			documentbox[3] = max(documentbox[3], box[3]) #right
 	# Nothing to do for per-page
 
 	print 'Trimming Pages'
 	# --bbox "--bbox "<left> <bottom> <right> <top>""
 	if (args.trim == 'even-odd'):
-		even_bboxstring = '--bbox-even "' + even_box[1] + ' ' + even_box[2] + ' ' + even_box[3] + ' ' + even_box[4] + '"'
-		odd_bboxstring = '--bbox-odd "' + odd_box[1] + ' ' + odd_box[2] + ' ' + odd_box[3] + ' ' + odd_box[4] + '"'
-		getoutput('pdfcrop ' + even_bboxstring + ' ' + odd_bboxstring + ' input.pdf cropped.pdf')
+		even_bboxstring = '--bbox-even "%f %f %f %f"' % tuple(even_box)
+		odd_bboxstring = '--bbox-odd "%f %f %f %f"' % tuple(odd_box)
+		getoutput('pdfcrop %s %s input.pdf cropped.pdf' % (even_bboxstring, odd_bboxstring))
 	elif (args.trim == 'document'):
-		bboxstring = '--bbox "' + documentbox[1] + ' ' + documentbox[2] + ' ' + documentbox[3] + ' ' + documentbox[4] + '"'
-		getoutput('pdfcrop ' + bboxstring + ' input.pdf cropped.pdf')
+		bboxstring = '--bbox "%f %f %f %f"' % tuple(documentbox)
+		getoutput('pdfcrop %s input.pdf cropped.pdf' % bboxstring)
 	else: # per-page
 		getoutput('pdfcrop input.pdf cropped.pdf')
 
 	print 'Imposing Pages'
-	intermediate_tex = tmpdir + os.sep + 'intermediate.tex'
-	intermediate_pdf = tmpdir + os.sep + 'intermediate.pdf'
+	intermediate_tex = os.path.join(tmpdir, 'intermediate.tex')
+	intermediate_pdf = os.path.join(tmpdir, 'intermediate.pdf')
 	intermediate = open(intermediate_tex, 'w')
 
 	papersizes = {'a4':'\setuppapersize[A5][A4,landscape]', 'letter':"\definepapersize[halfletter][width=5.5in,height=8.5in]\n\setuppapersize[halfletter][letter,landscape]"}
-	intermediate.write(papersizes[args.paper] + '\n')
+	intermediate.write("%s\n" % papersizes[args.paper])
 
 	typesetups = {'chapbook':'\setuparranging[2UP,doublesided]', 'perfect':'\setuparranging[2*2,doublesided]'}
-	intermediate.write(typesetups[args.type] + '\n')
+	intermediate.write("%s\n" % typesetups[args.type])
 
 	intermediate.write('''
 \setuplayout[header=0cm,footer=1mm,width=fit,height=fit,topspace=12.7mm,backspace=12.7mm]
@@ -120,15 +121,15 @@ def main():
 ''')
 
 	for page in range(1, npages + 1):
-		intermediate.write('\externalfigure[cropped.pdf][page=' + str(page) + ', factor=fit]\n')
+		intermediate.write('\externalfigure[cropped.pdf][page=%d, factor=fit]\n' % page)
 
 	intermediate.write('\n\stoptext\n')
 	intermediate.close()
 
-	getoutput('context --batchmode --noconsole ' + intermediate_tex)
+	getoutput('context --batchmode --noconsole %s' % intermediate_tex)
 
 	os.chdir(wd)
-	getoutput('mv "' + intermediate_pdf + '" "' + args.output + '"')
+	shutil.move(intermediate_pdf, args.output)
 
 	# cleanup
 	shutil.rmtree(tmpdir)
