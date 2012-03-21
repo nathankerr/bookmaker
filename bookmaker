@@ -47,6 +47,9 @@ def calc_bbox(boxes):
 	# consume all boxes element by element and calculate min/max of each row
 	return list(itertools.imap(min, *boxes))[:2] + list(itertools.imap(max, *boxes))[2:]
 
+def isEmptyPage(bbox):
+	return bbox == [0.0, 0.0, 0.0, 0.0]
+
 def main():
 	args = parseargs()
 
@@ -71,10 +74,12 @@ def main():
 	# drop %BoundingBox field and convert rest to float
 	boxes = [map(float, bboxline.split()[1:]) for bboxline in boundingboxes]
 	if(args.trim == 'even-odd'):
-		odd_box = calc_bbox(boxes[1::2]) # only odd elements
-		even_box = calc_bbox(boxes[0::2]) # only even elements
+		# compound bounding box of all non-empty odd/even pages
+		odd_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[1::2])) 
+		even_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[0::2]))
 	elif (args.trim == 'document'):
-		documentbox = calc_bbox(boxes)
+		# compound bounding box of all non-empty pages
+		documentbox = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes))
 	# Nothing to do for per-page
 
 	print 'Trimming Pages'
