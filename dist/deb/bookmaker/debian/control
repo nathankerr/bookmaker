@@ -1,0 +1,12 @@
+Source: bookmaker
+Section: misc
+Priority: extra
+Maintainer: Dennis Schwerdel <schwerdel@informatik.uni-kl.de>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.8.3
+
+Package: bookmaker
+Architecture: all
+Depends: ${misc:Depends}, python(>=2.7), context, ghostscript
+Description: Bookmaker takes any PDF and reformats it for printing as a DIY book
+ Bookmaker takes any PDF and reformats it for printing as a DIY book. Each page of the input PDF is trimmed for exterior white space, and then resized to fit four pages on a single sheet of paper (both sides). The pages are ordered according to the type of book desired.

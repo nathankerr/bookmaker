@@ -1,0 +1,14 @@
+#!/bin/sh
+# postrm script for #PACKAGE#
+#
+# see: dh_installdeb(1)
+
+set -e
+
+if [ remove = "$1" -o abort-install = "$1" -o disappear = "$1" ]; then
+  dpkg-divert --package bookmaker --remove --rename --divert /usr/bin/pdfcrop.old /usr/bin/pdfcrop
+fi
+
+#DEBHELPER#
+
+exit 0
