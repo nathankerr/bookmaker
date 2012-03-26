@@ -1,10 +1,10 @@
 Upstream Author:
 
-   Nathan Kerr <kerr@informatik.uni-kl.de>
+   Nathan Kerr <nathan@nathankerr.com>
 
 Copyright:
 
-    Copyright (c) 2011 Nathan Kerr
+    Copyright (c) 2012 Nathan Kerr
 
 License:
 
@@ -28,6 +28,6 @@ THE SOFTWARE.
 
 The Debian packaging is:
 
-    Copyright (C) 2011 Dennis Schwerdel <schwerdel@informatik.uni-kl.de>
+    Copyright (C) 2012 Dennis Schwerdel <schwerdel@informatik.uni-kl.de>
 
 and is licensed under the same license, see above.
