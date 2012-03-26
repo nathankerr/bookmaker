@@ -47,12 +47,19 @@ Exterior whitespace (margins) are automatically trimmed from the input PDF pages
 
 All PDFs produced by Bookmaker are meant to be printed using a duplex printer with long-edge flip. Long-edge flip is (usually) the default for duplex printing as it is the setting for full (single) page duplex printing.
 
-Use your favorite PDF reader to print the produced PDF.
+Running
+
+    bookmaker --print input.pdf
+
+will send the result to your default printer (using lp).
+
+You can also use your favorite PDF reader to print the produced PDF.
 
 # Usage
 
 ```
-usage: bookmaker [-h] [--paper PAPER] [--type TYPE] [--trim TRIM] input output
+usage: bookmaker [-h] [--paper PAPER] [--type TYPE] [--trim TRIM] [--print]
+                 input [output]
 
 DIY Books from PDFs
 
@@ -65,11 +72,12 @@ optional arguments:
   --paper PAPER  a4 | letter (Default is a4)
   --type TYPE    auto | chapbook | perfect (Default is auto)
   --trim TRIM    even-odd | document | per-page (Default is even-odd)
+  --print        send result to default printer
 ```
 
 ## Requirements and Dependencies
 
-Relies on Ghostscript,TexLive 2011 (newer version may also work), and Python.
+Relies on Ghostscript, TexLive 2011 (newer version may also work), Python, and CUPS (for printing).
 
 If you have a python older than 2.7, you will need a copy of argparse. You can get a copy from the [latest python standard library]:(http://hg.python.org/cpython/file/2.7/Lib/argparse.py). Put argparse.py in the same directory as the bookmaker script. This method has been tested on RHEL6 which uses python 2.6.6.
 
