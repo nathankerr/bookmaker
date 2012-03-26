@@ -1,0 +1,10 @@
+bookmaker/bookmaker
+bookmaker/debian/bookmaker.debhelper.log
+bookmaker/debian/bookmaker.substvars
+bookmaker/debian/bookmaker/DEBIAN
+bookmaker/debian/bookmaker/usr
+bookmaker/debian/files
+*.deb
+*.build
+*.changes
+

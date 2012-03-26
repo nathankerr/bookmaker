@@ -1,0 +1,12 @@
+#!/bin/sh
+# preinst script for #PACKAGE#
+#
+# see: dh_installdeb(1)
+
+set -e
+
+dpkg-divert --package bookmaker --add --rename --divert /usr/bin/pdfcrop.old /usr/bin/pdfcrop
+
+#DEBHELPER#
+
+exit 0
