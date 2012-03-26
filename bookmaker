@@ -110,7 +110,7 @@ def main():
 	intermediate.write('''
 \setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
 	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
-\setuppagenumbering[location=inright,alternative=doublesided]
+\setuppagenumbering[location=marginedge,alternative=doublesided]
 \starttext
 ''')
 
