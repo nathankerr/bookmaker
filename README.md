@@ -53,26 +53,33 @@ Running
 
 will send the result to your default printer (using lp).
 
-You can also use your favorite PDF reader to print the produced PDF.
+You can also set the printer to send the output to by
+
+    bookmaker --printer printername input.pdf
+
+Your favorite PDF reader can also print the produced PDF.
 
 # Usage
 
 ```
 usage: bookmaker [-h] [--paper PAPER] [--type TYPE] [--trim TRIM] [--print]
+                 [--printer PRINTER]
                  input [output]
 
 DIY Books from PDFs
 
 positional arguments:
-  input          PDF to convert into a book
-  output         Where to store the new book
+  input              PDF to convert into a book
+  output             Where to store the new book
 
 optional arguments:
-  -h, --help     show this help message and exit
-  --paper PAPER  a4 | letter (Default is a4)
-  --type TYPE    auto | chapbook | perfect (Default is auto)
-  --trim TRIM    even-odd | document | per-page (Default is even-odd)
-  --print        send result to default printer
+  -h, --help         show this help message and exit
+  --paper PAPER      a4 | letter (Default is a4)
+  --type TYPE        auto | chapbook | perfect (Default is auto)
+  --trim TRIM        even-odd | document | per-page (Default is even-odd)
+  --print            send result to default printer
+  --printer PRINTER  print result to specific printer (implies --print)
+
 ```
 
 ## Requirements and Dependencies
