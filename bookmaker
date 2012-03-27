@@ -13,6 +13,7 @@ def parseargs():
 	parser.add_argument('--type', type=btype, default='auto', help='auto | chapbook | perfect (Default is auto)')
 	parser.add_argument('--trim', type=trim, default='even-odd', help='even-odd | document | per-page (Default is even-odd)')
 	parser.add_argument('--print', dest="printfile", action='store_true', default=False, help='send result to default printer')
+	parser.add_argument('--printer', help='print result to specific printer (implies --print)')
 	parser.add_argument('input', help='PDF to convert into a book')
 	parser.add_argument('output', help='Where to store the new book', default=None, nargs='?')
 
@@ -53,6 +54,8 @@ def isEmptyPage(bbox):
 
 def main():
 	args = parseargs()
+	if args.printer:
+		args.printfile = True
 	if not args.output and not args.printfile:
 		print >>sys.stderr, "Must either specify output file or print directive"
 		sys.exit(-1)
@@ -124,7 +127,8 @@ def main():
 
 	if args.printfile:
 		print 'Sending document to printer'
-		getoutput("pdf2ps %s - | lp -o sides=two-sided-long-edge -" % intermediate_pdf)
+		printeropt = '-d %r' % args.printer if args.printer else ''
+		getoutput("pdf2ps %s - | lp %s -o sides=two-sided-long-edge -" % (intermediate_pdf, printeropt))
 	
 	os.chdir(wd)
 	if args.output:
