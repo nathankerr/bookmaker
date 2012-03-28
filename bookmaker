@@ -54,7 +54,12 @@ def trim(string):
 
 def calc_bbox(boxes):
 	# consume all boxes element by element and calculate min/max of each row
-	return list(map(min, *boxes))[:2] + list(map(max, *boxes))[2:]
+	if len(boxes) > 1:
+		return list(itertools.imap(min, *boxes))[:2] + list(itertools.imap(max, *boxes))[2:]
+	elif len(boxes) == 1:
+		return boxes[0]
+	else:
+		return [0.0, 0.0, 0.0, 0.0]
 
 def isEmptyPage(bbox):
 	return bbox == [0.0, 0.0, 0.0, 0.0]
