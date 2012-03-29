@@ -1,9 +1,16 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import argparse
 from tempfile import mkdtemp
-import os, shutil, commands, itertools
+import os, shutil, itertools
 import sys
+
+if sys.version_info[0] == 3:
+	from subprocess import getstatusoutput
+else:
+	from commands import getstatusoutput
 
 def parseargs():
 	# argparse was new in python 2.7
@@ -20,7 +27,7 @@ def parseargs():
 	return parser.parse_args()
 
 def getoutput(cmd):
-	status, output = commands.getstatusoutput(cmd)
+	status, output = getstatusoutput(cmd)
 	if status:
 		raise Exception("Error when executing: %s\n%s" % (cmd, output))
 	return output
@@ -47,7 +54,7 @@ def trim(string):
 
 def calc_bbox(boxes):
 	# consume all boxes element by element and calculate min/max of each row
-	return list(itertools.imap(min, *boxes))[:2] + list(itertools.imap(max, *boxes))[2:]
+	return list(map(min, *boxes))[:2] + list(map(max, *boxes))[2:]
 
 def isEmptyPage(bbox):
 	return bbox == [0.0, 0.0, 0.0, 0.0]
@@ -57,7 +64,7 @@ def main():
 	if args.printer:
 		args.printfile = True
 	if not args.output and not args.printfile:
-		print >>sys.stderr, "Must either specify output file or print directive"
+		print("Must either specify output file or print directive", file=sys.stderr)
 		sys.exit(-1)
 
 	tmpdir = mkdtemp()
@@ -66,7 +73,7 @@ def main():
 	wd = os.getcwd()
 	os.chdir(tmpdir)
 
-	print 'Inspecting PDF'
+	print('Inspecting PDF')
 	boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
 	npages = len(boundingboxes)
 	
@@ -76,20 +83,20 @@ def main():
 		else:
 			args.type = 'perfect'
 	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
-	print 'Creating a PDF for a %s on %s paper' % (types[args.type], args.paper)
+	print('Creating a PDF for a %s on %s paper' % (types[args.type], args.paper))
 
 	# drop %BoundingBox field and convert rest to float
-	boxes = [map(float, bboxline.split()[1:]) for bboxline in boundingboxes]
+	boxes = [list(map(float, bboxline.split()[1:])) for bboxline in boundingboxes]
 	if(args.trim == 'even-odd'):
 		# compound bounding box of all non-empty odd/even pages
-		even_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[1::2])) 
-		odd_box = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes[0::2]))
+		even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)]) 
+		odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
 	elif (args.trim == 'document'):
 		# compound bounding box of all non-empty pages
-		documentbox = calc_bbox(filter(lambda bbox: not isEmptyPage(bbox), boxes))
+		documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
 	# Nothing to do for per-page
 
-	print 'Trimming Pages'
+	print('Trimming Pages')
 	# --bbox "--bbox "<left> <bottom> <right> <top>""
 	if (args.trim == 'even-odd'):
 		crop_str = '--bbox-even "%f %f %f %f" --bbox-odd "%f %f %f %f"' % tuple(even_box + odd_box)
@@ -99,7 +106,7 @@ def main():
 		crop_str = ""
 	getoutput('pdfcrop --restricted %s input.pdf cropped.pdf' % crop_str)
 	
-	print 'Imposing Pages'
+	print('Imposing Pages')
 	intermediate_tex = os.path.join(tmpdir, 'intermediate.tex')
 	intermediate_pdf = os.path.join(tmpdir, 'intermediate.pdf')
 	intermediate = open(intermediate_tex, 'w')
@@ -117,7 +124,7 @@ def main():
 \starttext
 ''')
 
-	for page in xrange(1, npages + 1):
+	for page in range(1, npages + 1):
 		intermediate.write('\externalfigure[cropped.pdf][page=%d, factor=fit]\n' % page)
 
 	intermediate.write('\n\stoptext\n')
@@ -126,7 +133,7 @@ def main():
 	getoutput('context --paranoid --batchmode --noconsole %s' % intermediate_tex)
 
 	if args.printfile:
-		print 'Sending document to printer'
+		print('Sending document to printer')
 		printeropt = '-d %r' % args.printer if args.printer else ''
 		getoutput("pdf2ps %s - | lp %s -o sides=two-sided-long-edge -" % (intermediate_pdf, printeropt))
 	
@@ -137,7 +144,7 @@ def main():
 	# cleanup
 	shutil.rmtree(tmpdir)
 
-	print 'Done'
+	print('Done')
 
 if __name__ == '__main__':
 	main()

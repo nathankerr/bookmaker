@@ -88,6 +88,8 @@ Relies on Ghostscript, TexLive 2011 (newer version may also work), Python, and C
 
 If you have a python older than 2.7, you will need a copy of argparse. You can get a copy from the [latest python standard library]:(http://hg.python.org/cpython/file/2.7/Lib/argparse.py). Put argparse.py in the same directory as the bookmaker script. This method has been tested on RHEL6 which uses python 2.6.6.
 
+Seems to work using Python 2.6.6, 2.7.2, and 3.2.2
+
 ## Installation
 
 Put bookmaker in your path.
