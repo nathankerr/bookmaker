@@ -56,7 +56,7 @@ def isEmptyPage(bbox):
 	return bbox == [0.0, 0.0, 0.0, 0.0]
 
 def main():
-	args = processeargs()
+	args = processargs()
 	
 	tmpdir = mkdtemp()
 	shutil.copyfile(args.input, os.path.join(tmpdir, 'input.pdf'))
@@ -112,11 +112,20 @@ def main():
 \setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
 	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
 \setuppagenumbering[location=marginedge,alternative=doublesided]
+\setupfloats[spacebefore=none,margin=0pt]
 \starttext
 ''')
 
-	for page in range(1, npages + 1):
-		intermediate.write('\externalfigure[cropped.pdf][page=%d, factor=fit]\n' % page)
+	intermediate.write('''
+\getfiguredimensions[cropped.pdf]
+\dorecurse\\noffigurepages
+	{\ifodd\\recurselevel
+		\setupfloats[location=left]
+	\else
+		\setupfloats[location=right]
+	\\fi
+	\placefigure{none}{\externalfigure[cropped.pdf][page=\\recurselevel, factor=fit]}}
+''')
 
 	intermediate.write('\n\stoptext\n')
 	intermediate.close()
