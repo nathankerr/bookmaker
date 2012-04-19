@@ -32,8 +32,18 @@ def processargs():
 	if args.printer:
 		args.printfile = True
 	if not args.output and not args.printfile:
-		print("Must either specify output file or print directive", file=sys.stderr)
-		sys.exit(-1)
+		if args.input.lower().endswith(".pdf"):
+			base = os.path.splitext(args.input)[0]
+		else:
+			base = args.input
+		if os.path.exists("%s.book.pdf" % base):
+			num = 2
+			while os.path.exists("%s.book_%d.pdf" % (base, num)):
+				num += 1
+			args.output = "%s.book_%d.pdf" % (base, num)
+		else:
+			args.output = "%s.book.pdf" % base
+		assert not os.path.exists(args.output)
 
 	return args
 
@@ -139,6 +149,7 @@ def main():
 	
 	os.chdir(wd)
 	if args.output:
+		print('Writing book to %s' % args.output)
 		shutil.move(intermediate_pdf, args.output)
 
 	# cleanup
