@@ -7,6 +7,8 @@ from tempfile import mkdtemp
 import os, shutil, itertools
 import sys
 
+VERSION="0.1"
+
 if sys.version_info[0] == 3:
 	from subprocess import getstatusoutput
 else:
@@ -24,6 +26,7 @@ def processargs():
 		help='Controls how whitespace is trimmed off. Default is even-odd.')
 	parser.add_argument('--print', dest="printfile", action='store_true', default=False, help='send result to default printer')
 	parser.add_argument('--printer', help='print result to specific printer (implies --print)')
+	parser.add_argument('--version', action="version", version="Version: %s" % VERSION, help='prints the version string and exits')
 	parser.add_argument('input', help='PDF to convert into a book')
 	parser.add_argument('output', help='Where to store the new book', default=None, nargs='?')
 
