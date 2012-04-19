@@ -1,4 +1,5 @@
 PACKAGE=bookmaker
+VERSION=v0.1
 DEPENDENCIES=debhelper devscripts
 
 .PHONY: default
@@ -7,7 +8,7 @@ default: build
 .PHONY: build
 build: $(PACKAGE)_*.deb
 $(PACKAGE)_*.deb:
-	cp ../../bookmaker $(PACKAGE)/bookmaker
+	git archive $(VERSION) --format=tar | tar x -C $(PACKAGE)
 	(cd $(PACKAGE); debuild -b -us -uc; cd ..)
 
 .PHONY: clean
