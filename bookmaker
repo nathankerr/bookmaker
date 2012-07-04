@@ -24,7 +24,7 @@ def processargs():
 		help='Type of imposition to make. Auto automatically chooses between the two. Default is auto')
 	parser.add_argument('--trim', choices=['even-odd', 'document', 'per-page'], default='even-odd',
 		help='Controls how whitespace is trimmed off. Default is even-odd.')
-	parser.add_argument('--nopagenumbers', dest="nopagenumbers", action="store_true", default=False, help='supress additional page numbers')
+	parser.add_argument('--nopagenumbers', dest="nopagenumbers", action="store_true", default=False, help='suppress additional page numbers')
 	parser.add_argument('--print', dest="printfile", action='store_true', default=False, help='send result to default printer')
 	parser.add_argument('--printer', help='print result to specific printer (implies --print)')
 	parser.add_argument('--version', action="version", version="Version: %s" % VERSION, help='prints the version string and exits')
@@ -122,15 +122,14 @@ def main():
 	typesetups = {'chapbook':'\setuparranging[2UP,doublesided]', 'perfect':'\setuparranging[2*2,doublesided]'}
 	intermediate.write("%s\n" % typesetups[args.type])
 
-	intermediate.write('''
-\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
-	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
-''')
 	if not args.nopagenumbers:
 		intermediate.write('''
 \setuppagenumbering[location=marginedge,alternative=doublesided]
 ''')
+
 	intermediate.write('''
+\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
+	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
 \setupfloats[spacebefore=none,margin=0pt]
 \starttext
 \getfiguredimensions[cropped.pdf]

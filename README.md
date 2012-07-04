@@ -41,7 +41,13 @@ Exterior whitespace (margins) are automatically trimmed from the input PDF pages
 
 - *even-odd*: Creates document-wide trim setting for both even and odd pages
 - *document*: Creates a document-wide trim setting from all pages
-- *per-page*: Creates a trim setting for every page 
+- *per-page*: Creates a trim setting for every page
+
+# Page Numbers
+
+Bookmaker will add page numbers by default. To turn off page numbers use:
+
+    bookmaker --nopagenumbers
 
 # Printing
 
@@ -62,24 +68,30 @@ Your favorite PDF reader can also print the produced PDF.
 # Usage
 
 ```
-usage: bookmaker [-h] [--paper PAPER] [--type TYPE] [--trim TRIM] [--print]
-                 [--printer PRINTER]
+usage: bookmaker [-h] [--paper {a4,letter}] [--type {auto,chapbook,perfect}]
+                 [--trim {even-odd,document,per-page}] [--nopagenumbers]
+                 [--print] [--printer PRINTER] [--version]
                  input [output]
 
 DIY Books from PDFs
 
 positional arguments:
-  input              PDF to convert into a book
-  output             Where to store the new book
+  input                 PDF to convert into a book
+  output                Where to store the new book
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --paper PAPER      a4 | letter (Default is a4)
-  --type TYPE        auto | chapbook | perfect (Default is auto)
-  --trim TRIM        even-odd | document | per-page (Default is even-odd)
-  --print            send result to default printer
-  --printer PRINTER  print result to specific printer (implies --print)
-
+  -h, --help            show this help message and exit
+  --paper {a4,letter}   Size of paper to be printed on. Default is a4
+  --type {auto,chapbook,perfect}
+                        Type of imposition to make. Auto automatically chooses
+                        between the two. Default is auto
+  --trim {even-odd,document,per-page}
+                        Controls how whitespace is trimmed off. Default is
+                        even-odd.
+  --nopagenumbers       suppress additional page numbers
+  --print               send result to default printer
+  --printer PRINTER     print result to specific printer (implies --print)
+  --version             prints the version string and exits
 ```
 
 ## Requirements and Dependencies
