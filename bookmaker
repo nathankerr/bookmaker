@@ -20,8 +20,8 @@ def processargs():
 
 	parser.add_argument('--paper', choices=['a4', 'letter'], default='a4',
 		help='Size of paper to be printed on. Default is a4')
-	parser.add_argument('--type', choices=['auto', 'chapbook', 'perfect'], default='auto',
-		help='Type of imposition to make. Auto automatically chooses between the two. Default is auto')
+	parser.add_argument('--type', choices=['chapbook', 'perfect'], default='chapbook',
+		help='Type of imposition to make. Auto automatically chooses between the two. Default is chapbook')
 	parser.add_argument('--trim', choices=['even-odd', 'document', 'per-page'], default='even-odd',
 		help='Controls how whitespace is trimmed off. Default is even-odd.')
 	parser.add_argument('--nopagenumbers', dest="nopagenumbers", action="store_true", default=False, help='suppress additional page numbers')
@@ -78,28 +78,24 @@ def main():
 	wd = os.getcwd()
 	os.chdir(tmpdir)
 
-	print('Inspecting PDF')
-	boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
-	npages = len(boundingboxes)
-	
-	if args.type == 'auto':
-		if npages <= 24:
-			args.type = 'chapbook'
-		else:
-			args.type = 'perfect'
 	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
 	print('Creating a PDF for a %s on %s paper' % (types[args.type], args.paper))
 
-	# drop %BoundingBox field and convert rest to float
-	boxes = [list(map(float, bboxline.split()[1:])) for bboxline in boundingboxes]
-	if(args.trim == 'even-odd'):
-		# compound bounding box of all non-empty odd/even pages
-		even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)]) 
-		odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
-	elif (args.trim == 'document'):
-		# compound bounding box of all non-empty pages
-		documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
-	# Nothing to do for per-page
+	if args.trim != "per-page":
+		print('Inspecting PDF')
+		boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
+		npages = len(boundingboxes)
+
+		# drop %BoundingBox field and convert rest to float
+		boxes = [list(map(float, bboxline.split()[1:])) for bboxline in boundingboxes]
+		if(args.trim == 'even-odd'):
+			# compound bounding box of all non-empty odd/even pages
+			even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)]) 
+			odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
+		elif (args.trim == 'document'):
+			# compound bounding box of all non-empty pages
+			documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
+		# Nothing to do for per-page
 
 	print('Trimming Pages')
 	# --bbox "--bbox "<left> <bottom> <right> <top>""

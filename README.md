@@ -1,24 +1,50 @@
 Bookmaker takes any PDF and reformats it for printing as a DIY book. Each page of the input PDF is trimmed for exterior white space, and then resized to fit four pages on a single sheet of paper (both sides). The pages are ordered according to the type of book desired. Page numbers are also added.
 
+# Usage
+
+```
+usage: bookmaker [-h] [--paper {a4,letter}] [--type {chapbook,perfect}]
+                 [--trim {even-odd,document,per-page}] [--nopagenumbers]
+                 [--print] [--printer PRINTER] [--version]
+                 input [output]
+
+DIY Books from PDFs
+
+positional arguments:
+  input                 PDF to convert into a book
+  output                Where to store the new book
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --paper {a4,letter}   Size of paper to be printed on. Default is a4
+  --type {chapbook,perfect}
+                        Type of imposition to make. Auto automatically chooses
+                        between the two. Default is chapbook
+  --trim {even-odd,document,per-page}
+                        Controls how whitespace is trimmed off. Default is
+                        even-odd.
+  --nopagenumbers       suppress additional page numbers
+  --print               send result to default printer
+  --printer PRINTER     print result to specific printer (implies --print)
+  --version             prints the version string and exits
+```
+
 # Paper size
 
-Bookmaker can produce PDFs for A4 or Letter size paper.
+Bookmaker can produce PDFs for A4 or Letter size paper. Defaults to A4 paper.
 
-    bookmaker --paper letter input.pdf output.pdf
+    bookmaker --paper {a4,letter}
 
 - *a4*: Fit the input PDF to A5 and then impose the A5 pages on A4 paper. Produces an A4 sized PDF. (DEFAULT)
 - *letter*: Fit the input PDF to half letter (digest) and then impose the half letter pages on letter paper. Produces a letter sized PDF.
 
 # Book types
 
-Bookmaker can produce PDFs ready for creating two types of books: chapbooks and perfect bound books.
+Bookmaker can produce PDFs ready for creating two types of books: chapbooks and perfect bound books. Chapbooks are produced by default.
 
-Bookmaker can automatically choose which type to make. If the input PDF has less than 24 pages, it will produce a PDF suitable for making a chapbook. Otherwise it will produce a PDF suitable for making a perfect bound book.
+    bookmaker --type {chapbook,perfect}
 
-    bookmaker --type perfect input.pdf output.pdf
-
-- *auto*: if (pagecount(input.pdf) <= 24) then chapbook else perfect (DEFAULT)
-- *chapbook*: produce a PDF suitable for making a chapbook
+- *chapbook*: produce a PDF suitable for making a chapbook (DEFAULT)
 - *perfect*: produce a PDF suitable for making a perfect bound book
 
 ## Chapbooks
@@ -29,7 +55,7 @@ Hamish MacDonald made a video tutorial on how to make [a simple chapbook](http:/
 
 ## Perfect bound books
 
-Books are designed to be perfect bound with 1 sheet signatures. To do this, fold each page in half, stack the pages together, and glue.
+Books are designed to be perfect bound with 1 sheet signatures. To do this, fold each page in half, stack the pages together, and bind.
 
 Hamish MacDonald made a tutorial on [perfect bound books.](http://www.hamishmacdonald.com/books/books/DIYbook_ep17.php)
 
@@ -37,7 +63,7 @@ Hamish MacDonald made a tutorial on [perfect bound books.](http://www.hamishmacd
 
 Exterior whitespace (margins) are automatically trimmed from the input PDF pages. Different trimming schemes produce different results.
 
-    bookmaker --trim even-odd input.pdf output.pdf
+    bookmaker --trim {even-odd,document,per-page}
 
 - *even-odd*: Creates document-wide trim setting for both even and odd pages
 - *document*: Creates a document-wide trim setting from all pages
@@ -45,7 +71,7 @@ Exterior whitespace (margins) are automatically trimmed from the input PDF pages
 
 # Page Numbers
 
-Bookmaker will add page numbers by default. To turn off page numbers use:
+Bookmaker automatically adds page numbers to the output. To turn off page numbers, use:
 
     bookmaker --nopagenumbers
 
@@ -65,34 +91,9 @@ You can also set the printer to send the output to by
 
 Your favorite PDF reader can also print the produced PDF.
 
-# Usage
+# Installation
 
-```
-usage: bookmaker [-h] [--paper {a4,letter}] [--type {auto,chapbook,perfect}]
-                 [--trim {even-odd,document,per-page}] [--nopagenumbers]
-                 [--print] [--printer PRINTER] [--version]
-                 input [output]
-
-DIY Books from PDFs
-
-positional arguments:
-  input                 PDF to convert into a book
-  output                Where to store the new book
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --paper {a4,letter}   Size of paper to be printed on. Default is a4
-  --type {auto,chapbook,perfect}
-                        Type of imposition to make. Auto automatically chooses
-                        between the two. Default is auto
-  --trim {even-odd,document,per-page}
-                        Controls how whitespace is trimmed off. Default is
-                        even-odd.
-  --nopagenumbers       suppress additional page numbers
-  --print               send result to default printer
-  --printer PRINTER     print result to specific printer (implies --print)
-  --version             prints the version string and exits
-```
+Put bookmaker in your path.
 
 ## Requirements and Dependencies
 
@@ -101,7 +102,3 @@ Relies on Ghostscript, TexLive 2011 (newer version may also work), Python, and C
 If you have a python older than 2.7, you will need a copy of argparse. You can get a copy from the [latest python standard library]:(http://hg.python.org/cpython/file/2.7/Lib/argparse.py). Put argparse.py in the same directory as the bookmaker script. This method has been tested on RHEL6 which uses python 2.6.6.
 
 Seems to work using Python 2.6.6, 2.7.2, and 3.2.2
-
-## Installation
-
-Put bookmaker in your path.
