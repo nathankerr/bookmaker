@@ -6,8 +6,9 @@ import argparse
 from tempfile import mkdtemp
 import os, shutil, itertools
 import sys
+from time import time
 
-VERSION="0.1"
+VERSION="0.2rc1"
 
 if sys.version_info[0] == 3:
 	from subprocess import getstatusoutput
@@ -69,6 +70,17 @@ def calc_bbox(boxes):
 def isEmptyPage(bbox):
 	return bbox == [0.0, 0.0, 0.0, 0.0]
 
+# from
+# left bottom right top
+# to
+# top hoffset width height
+def bbox_to_crop(box):
+		left = box[0]
+		bottom = box[1]
+		right = box[2]
+		top = box[3]
+		return [top, left, right-left, top-bottom]
+
 def main():
 	args = processargs()
 	
@@ -81,33 +93,27 @@ def main():
 	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
 	print('Creating a PDF for a %s on %s paper' % (types[args.type], args.paper))
 
-	if args.trim != "per-page":
-		print('Inspecting PDF')
-		boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
-		npages = len(boundingboxes)
+	start = time()
+	sys.stdout.write ('Inspecting PDF ')
+	sys.stdout.flush()
+	boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
 
-		# drop %BoundingBox field and convert rest to float
-		boxes = [list(map(float, bboxline.split()[1:])) for bboxline in boundingboxes]
-		if(args.trim == 'even-odd'):
-			# compound bounding box of all non-empty odd/even pages
-			even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)]) 
-			odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
-		elif (args.trim == 'document'):
-			# compound bounding box of all non-empty pages
-			documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
-		# Nothing to do for per-page
-
-	print('Trimming Pages')
-	# --bbox "--bbox "<left> <bottom> <right> <top>""
-	if (args.trim == 'even-odd'):
-		crop_str = '--bbox-even "%f %f %f %f" --bbox-odd "%f %f %f %f"' % tuple(even_box + odd_box)
+	# drop %BoundingBox field and convert rest to float
+	boxes = [list(map(float, bboxline.split()[1:])) for bboxline in boundingboxes]
+	if(args.trim == 'even-odd'):
+		# compound bounding box of all non-empty odd/even pages
+		even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)]) 
+		odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
+		crop_box = tuple(bbox_to_crop(even_box) + bbox_to_crop(odd_box))
 	elif (args.trim == 'document'):
-		crop_str = '--bbox "%f %f %f %f"' % tuple(documentbox)
-	else: # per-page
-		crop_str = ""
-	getoutput('pdfcrop --restricted %s input.pdf cropped.pdf' % crop_str)
+		# compound bounding box of all non-empty pages
+		documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
+		crop_box = tuple(bbox_to_crop(documentbox) + bbox_to_crop(documentbox))
+	# Nothing to do for per-page
 	
-	print('Imposing Pages')
+	print("%fs" % (time() - start))
+	start = time()
+	sys.stdout.write('Imposing Pages ')
 	intermediate_tex = os.path.join(tmpdir, 'intermediate.tex')
 	intermediate_pdf = os.path.join(tmpdir, 'intermediate.pdf')
 	intermediate = open(intermediate_tex, 'w')
@@ -121,26 +127,53 @@ def main():
 	if not args.nopagenumbers:
 		intermediate.write('''
 \setuppagenumbering[location=marginedge,alternative=doublesided]
-''')
-
-	intermediate.write('''
 \setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
 	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
+''')
+	else:
+		intermediate.write('''
+\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
+	header=0mm,footer=0mm,topspace=5mm,height=middle]
+''')
+
+	# general document setup
+	intermediate.write('''
 \setupfloats[spacebefore=none,margin=0pt]
 \starttext
-\getfiguredimensions[cropped.pdf]
+\getfiguredimensions[input.pdf]
+''')
+
+	# crops are different for document wide bounding boxes (even-odd and document) and per-page boxes
+	if args.trim != "per-page":
+		intermediate.write('''
 \dorecurse\\noffigurepages
 	{\ifodd\\recurselevel
 		\setupfloats[location=left]
+		\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=\\recurselevel]}}}
 	\else
 		\setupfloats[location=right]
+		\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=\\recurselevel]}}}
 	\\fi
-	\placefigure{none}{\externalfigure[cropped.pdf][page=\\recurselevel, factor=fit]}}
-\stoptext
+	}
+''' % crop_box)
+	else:
+		for page in range(len(boxes)):
+			if page % 2 == 0: # even
+				intermediate.write('''
+\setupfloats[location=left]
 ''')
+			else: #odd
+				intermediate.write('''\setupfloats[location=left]''')
+				intermediate.write('''\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=%d]}}}
+''' % tuple(bbox_to_crop(boxes[page]) + [page+1]))
+
+	# finish it off
+	intermediate.write('''\stoptext''')
 	intermediate.close()
 
 	getoutput('context --paranoid --batchmode --noconsole %s' % intermediate_tex)
+
+	print("%fs" % (time() - start))
 
 	if args.printfile:
 		print('Sending document to printer')
