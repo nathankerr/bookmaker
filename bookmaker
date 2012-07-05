@@ -104,7 +104,7 @@ def main():
 		# compound bounding box of all non-empty odd/even pages
 		even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)]) 
 		odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
-		crop_box = tuple(bbox_to_crop(even_box) + bbox_to_crop(odd_box))
+		crop_box = tuple(bbox_to_crop(odd_box) + bbox_to_crop(even_box))
 	elif (args.trim == 'document'):
 		# compound bounding box of all non-empty pages
 		documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
@@ -127,17 +127,17 @@ def main():
 	if not args.nopagenumbers:
 		intermediate.write('''
 \setuppagenumbering[location=marginedge,alternative=doublesided]
-\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
-	header=0mm,footer=\\baselineskip,topspace=5mm,height=middle]
+\setuplayout[footer=\\baselineskip]
 ''')
 	else:
 		intermediate.write('''
-\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
-	header=0mm,footer=0mm,topspace=5mm,height=middle]
+\setuplayout[footer=\\baselineskip]
 ''')
 
 	# general document setup
 	intermediate.write('''
+\setuplayout[backspace=12.7mm,rightmargin=5mm,width=fit,leftmargindistance=0mm,rightmargindistance=0mm,
+	header=0mm,topspace=5mm,height=middle]
 \setupfloats[spacebefore=none,margin=0pt]
 \starttext
 \getfiguredimensions[input.pdf]
@@ -159,12 +159,12 @@ def main():
 	else:
 		for page in range(len(boxes)):
 			if page % 2 == 0: # even
-				intermediate.write('''
-\setupfloats[location=left]
-''')
+				intermediate.write('\setupfloats[location=left]')
 			else: #odd
-				intermediate.write('''\setupfloats[location=left]''')
-				intermediate.write('''\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=%d]}}}
+				intermediate.write('\setupfloats[location=left]')
+			
+			# must use page+1 in ConTeX because it indexes starting with 1
+			intermediate.write('''\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=%d]}}}
 ''' % tuple(bbox_to_crop(boxes[page]) + [page+1]))
 
 	# finish it off
