@@ -27,7 +27,7 @@ def main():
 	finishtime(start)
 	
 	start = starttime('Imposing PDF ')
-	intermediate_pdf = makepdf(tempDir, boundingboxes, cropboxes, options.paper, options.type, options.nopagenumbers, options.trim)
+	intermediate_pdf = makepdf(options.paper, options.type, options.nopagenumbers, boundingboxes, cropboxes, options.trim)
 	finishtime(start)
 
 	if options.printfile:
@@ -50,7 +50,8 @@ def cleanupEnvironment(origDir, tempDir, output, intermediate_pdf):
 	os.chdir(origDir)
 	if output:
 		print('Writing book to %s' % output)
-		shutil.move(intermediate_pdf, output)
+		src_pdf = os.path.join(tempDir, intermediate_pdf)
+		shutil.move(src_pdf, output)
 	shutil.rmtree(tempDir)
 
 def print_pdf(intermediate_pdf, printer):
@@ -155,9 +156,9 @@ def bbox_to_crop(box):
 		top = box[3]
 		return [top, left, right-left, top-bottom]
 
-def makepdf(tmpdir, boundingboxes, crop_box, paper, booktype, nopagenumbers, trim):
-	intermediate_tex = os.path.join(tmpdir, 'intermediate.tex')
-	intermediate_pdf = os.path.join(tmpdir, 'intermediate.pdf')
+def makepdf(paper, booktype, nopagenumbers, boundingboxes, crop_box, trim):
+	intermediate_tex = 'intermediate.tex'
+	intermediate_pdf = 'intermediate.pdf'
 	intermediate = open(intermediate_tex, 'w')
 
 	papersizes = {'a4':'\setuppapersize[A5][A4,landscape]', 'letter':"\definepapersize[halfletter][width=5.5in,height=8.5in]\n\setuppapersize[halfletter][letter,landscape]"}
