@@ -1,97 +1,38 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-
 import argparse
 from tempfile import mkdtemp
 import os, shutil, itertools
 import sys
 from time import time
-
-VERSION="0.2rc2"
-
 if sys.version_info[0] == 3:
 	from subprocess import getstatusoutput
 else:
 	from commands import getstatusoutput
 
+VERSION="0.2rc2"
+
 def main():
 	options = processargs()
+	(origDir, tempDir) = switchToTempEnvironment(options.input)
 
-	(origDir, tempDir) = setupEnvironment(options.input)
-
-	displayOptions(options)
+	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
+	print('Creating a PDF for a %s on %s paper' % (types[options.type], options.paper))
 
 	start = starttime('Inspecting PDF ')
 	crop_boxes = getCropBoxes(options.trim)
 	finishtime(start)
 	
-	start = starttime('Imposing PDF ')
-	intermediate_pdf = makepdf(options.paper, options.type, options.nopagenumbers, crop_boxes)
+	start = starttime('Creating Book ')
+	book = createBook(options.paper, options.type, options.nopagenumbers, crop_boxes)
 	finishtime(start)
 
 	if options.printfile:
-		print_pdf(intermediate_pdf, printer)
+		print_pdf(book, printer)
 
-	cleanupEnvironment(origDir, tempDir, options.output, intermediate_pdf)
-
+	switchBackFromTempEnvironment(origDir, tempDir, options.output, book)
 	print('Done')
-
-def setupEnvironment(input):
-	tmpdir = mkdtemp()
-	shutil.copyfile(input, os.path.join(tmpdir, 'input.pdf'))
-
-	wd = os.getcwd()
-	os.chdir(tmpdir)
-
-	return (wd, tmpdir)
-
-def cleanupEnvironment(origDir, tempDir, output, intermediate_pdf):
-	os.chdir(origDir)
-	if output:
-		print('Writing book to %s' % output)
-		src_pdf = os.path.join(tempDir, intermediate_pdf)
-		shutil.move(src_pdf, output)
-	shutil.rmtree(tempDir)
-
-def print_pdf(intermediate_pdf, printer):
-	print('Sending document to printer')
-	printeropt = '-d %r' % printer if printer else ''
-	getoutput("pdf2ps %s - | lp %s -o sides=two-sided-long-edge -" % (intermediate_pdf, printeropt))
-
-def starttime(message):
-	start = time()
-	sys.stdout.write(message)
-	sys.stdout.flush()
-	return start
-
-def finishtime(start):
-	print("%fs" % (time() - start))
-
-def displayOptions(options):
-	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
-	print('Creating a PDF for a %s on %s paper' % (types[options.type], options.paper))
-
-def getCropBoxes(trim):
-	boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
-
-	# drop %BoundingBox field and convert rest to float
-	boxes = [list(map(float, bboxline.split()[1:])) for bboxline in boundingboxes]
-	if(trim == 'even-odd'):
-		# compound bounding box of all non-empty odd/even pages
-		even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)])
-		odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
-		bothboxes = (bbox_to_crop(odd_box), bbox_to_crop(even_box))
-		crop_boxes = [bothboxes[box%2] for box in range(len(boxes))]
-	elif (trim == 'document'):
-		# compound bounding box of all non-empty pages
-		documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
-		crop_box = bbox_to_crop(documentbox)
-		crop_boxes = [crop_box for box in boxes]
-	else: # per-page
-		crop_boxes = [bbox_to_crop(box) for box in boxes]
-
-	return crop_boxes
 
 def processargs():
 	# argparse was new in python 2.7
@@ -130,11 +71,58 @@ def processargs():
 
 	return args
 
+def switchToTempEnvironment(input):
+	tmpdir = mkdtemp()
+	shutil.copyfile(input, os.path.join(tmpdir, 'input.pdf'))
+
+	wd = os.getcwd()
+	os.chdir(tmpdir)
+
+	return (wd, tmpdir)
+
+def switchBackFromTempEnvironment(origDir, tempDir, output, intermediate_pdf):
+	os.chdir(origDir)
+	if output:
+		print('Writing book to %s' % output)
+		src_pdf = os.path.join(tempDir, intermediate_pdf)
+		shutil.move(src_pdf, output)
+	shutil.rmtree(tempDir)
+
+def starttime(message):
+	start = time()
+	sys.stdout.write(message)
+	sys.stdout.flush()
+	return start
+
+def finishtime(start):
+	print("%fs" % (time() - start))
+
 def getoutput(cmd):
 	status, output = getstatusoutput(cmd)
 	if status:
 		raise Exception("Error when executing: %s\n%s" % (cmd, output))
 	return output
+
+def getCropBoxes(trim):
+	boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
+
+	# drop %BoundingBox field and convert rest to float
+	boxes = [list(map(float, bboxline.split()[1:])) for bboxline in boundingboxes]
+	if(trim == 'even-odd'):
+		# compound bounding box of all non-empty odd/even pages
+		even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)])
+		odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
+		bothboxes = (bbox_to_crop(odd_box), bbox_to_crop(even_box))
+		crop_boxes = [bothboxes[box%2] for box in range(len(boxes))]
+	elif (trim == 'document'):
+		# compound bounding box of all non-empty pages
+		documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
+		crop_box = bbox_to_crop(documentbox)
+		crop_boxes = [crop_box for box in boxes]
+	else: # per-page
+		crop_boxes = [bbox_to_crop(box) for box in boxes]
+
+	return crop_boxes
 
 def calc_bbox(boxes):
 	# consume all boxes element by element and calculate min/max of each row
@@ -144,9 +132,6 @@ def calc_bbox(boxes):
 		return boxes[0]
 	else:
 		return [0.0, 0.0, 0.0, 0.0]
-
-def isEmptyPage(bbox):
-	return bbox == [0.0, 0.0, 0.0, 0.0]
 
 # from
 # left bottom right top
@@ -159,7 +144,10 @@ def bbox_to_crop(box):
 		top = box[3]
 		return [top, left, right-left, top-bottom]
 
-def makepdf(paper, booktype, nopagenumbers, crop_boxes):
+def isEmptyPage(bbox):
+	return bbox == [0.0, 0.0, 0.0, 0.0]
+
+def createBook(paper, booktype, nopagenumbers, crop_boxes):
 	intermediate_tex = 'intermediate.tex'
 	intermediate_pdf = 'intermediate.pdf'
 	intermediate = open(intermediate_tex, 'w')
@@ -210,6 +198,11 @@ def makepdf(paper, booktype, nopagenumbers, crop_boxes):
 	getoutput('context --paranoid --batchmode --noconsole %s' % intermediate_tex)
 
 	return intermediate_pdf
+
+def print_pdf(intermediate_pdf, printer):
+	print('Sending document to printer')
+	printeropt = '-d %r' % printer if printer else ''
+	getoutput("pdf2ps %s - | lp %s -o sides=two-sided-long-edge -" % (intermediate_pdf, printeropt))
 
 if __name__ == '__main__':
 	main()
