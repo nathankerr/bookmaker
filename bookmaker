@@ -23,11 +23,11 @@ def main():
 	displayOptions(options)
 
 	start = starttime('Inspecting PDF ')
-	(boundingboxes, cropboxes) = getBoundingBoxes(options.trim)
+	crop_boxes = getCropBoxes(options.trim)
 	finishtime(start)
 	
 	start = starttime('Imposing PDF ')
-	intermediate_pdf = makepdf(options.paper, options.type, options.nopagenumbers, boundingboxes, cropboxes, options.trim)
+	intermediate_pdf = makepdf(options.paper, options.type, options.nopagenumbers, crop_boxes)
 	finishtime(start)
 
 	if options.printfile:
@@ -72,23 +72,26 @@ def displayOptions(options):
 	types = {'chapbook':'chapbook', 'perfect':'perfect bound book'}
 	print('Creating a PDF for a %s on %s paper' % (types[options.type], options.paper))
 
-def getBoundingBoxes(trim):
+def getCropBoxes(trim):
 	boundingboxes = getoutput('gs -sDEVICE=bbox -dSAFER -dPARANOIDSAFER -dNOPAUSE -dBATCH input.pdf 2<&1|grep %%HiResBoundingBox').splitlines()
 
 	# drop %BoundingBox field and convert rest to float
 	boxes = [list(map(float, bboxline.split()[1:])) for bboxline in boundingboxes]
 	if(trim == 'even-odd'):
 		# compound bounding box of all non-empty odd/even pages
-		even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)]) 
+		even_box = calc_bbox([bbox for bbox in boxes[1::2] if not isEmptyPage(bbox)])
 		odd_box = calc_bbox([bbox for bbox in boxes[0::2] if not isEmptyPage(bbox)])
-		crop_box = tuple(bbox_to_crop(odd_box) + bbox_to_crop(even_box))
+		bothboxes = (bbox_to_crop(odd_box), bbox_to_crop(even_box))
+		crop_boxes = [bothboxes[box%2] for box in range(len(boxes))]
 	elif (trim == 'document'):
 		# compound bounding box of all non-empty pages
 		documentbox = calc_bbox([bbox for bbox in boxes if not isEmptyPage(bbox)])
-		crop_box = tuple(bbox_to_crop(documentbox) + bbox_to_crop(documentbox))
-	# Nothing to do for per-page
+		crop_box = bbox_to_crop(documentbox)
+		crop_boxes = [crop_box for box in boxes]
+	else: # per-page
+		crop_boxes = [bbox_to_crop(box) for box in boxes]
 
-	return (boundingboxes, crop_box)
+	return crop_boxes
 
 def processargs():
 	# argparse was new in python 2.7
@@ -156,7 +159,7 @@ def bbox_to_crop(box):
 		top = box[3]
 		return [top, left, right-left, top-bottom]
 
-def makepdf(paper, booktype, nopagenumbers, boundingboxes, crop_box, trim):
+def makepdf(paper, booktype, nopagenumbers, crop_boxes):
 	intermediate_tex = 'intermediate.tex'
 	intermediate_pdf = 'intermediate.pdf'
 	intermediate = open(intermediate_tex, 'w')
@@ -186,29 +189,19 @@ def makepdf(paper, booktype, nopagenumbers, boundingboxes, crop_box, trim):
 \getfiguredimensions[input.pdf]
 ''')
 
-	# crops are different for document wide bounding boxes (even-odd and document) and per-page boxes
-	if trim != "per-page":
-		intermediate.write('''
-\dorecurse\\noffigurepages
-	{\ifodd\\recurselevel
-		\setupfloats[location=left]
-		\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=\\recurselevel]}}}
-	\else
-		\setupfloats[location=right]
-		\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=\\recurselevel]}}}
-	\\fi
-	}
-''' % crop_box)
-	else:
-		for page in range(len(boxes)):
-			if page % 2 == 0: # even
-				intermediate.write('\setupfloats[location=left]')
-			else: #odd
-				intermediate.write('\setupfloats[location=left]')
-			
-			# must use page+1 in ConTeX because it indexes starting with 1
-			intermediate.write('''\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=%d]}}}
-''' % tuple(bbox_to_crop(boxes[page]) + [page+1]))
+	for page in range(len(crop_boxes)):
+		if isEmptyPage(page):
+			intermediate.write('\page')
+			continue
+
+		if page % 2 == 0: # even
+			intermediate.write('\setupfloats[location=left]')
+		else: #odd
+			intermediate.write('\setupfloats[location=left]')
+		
+		# must use page+1 in ConTeX because it indexes starting with 1
+		intermediate.write('''\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=%d]}}}
+''' % tuple(crop_boxes[page] + [page+1]))
 
 	# finish it off
 	intermediate.write('''\stoptext''')
