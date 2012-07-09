@@ -182,10 +182,10 @@ def createBook(paper, booktype, nopagenumbers, crop_boxes):
 			intermediate.write('\page')
 			continue
 
-		if page % 2 == 0: # even
+		if page % 2 == 0: # odd because of 0 based index
 			intermediate.write('\setupfloats[location=left]')
-		else: #odd
-			intermediate.write('\setupfloats[location=left]')
+		else: #even
+			intermediate.write('\setupfloats[location=right]')
 		
 		# must use page+1 in ConTeX because it indexes starting with 1
 		intermediate.write('''\placefigure{none}{\scale[factor=fit]{\clip[voffset=\\the\\dimexpr\\figurenaturalheight-%fbp, hoffset=%fbp, width=%fbp, height=%fbp]{\externalfigure[input.pdf][page=%d]}}}
