@@ -29,7 +29,7 @@ def main():
 	finishtime(start)
 
 	if options.printfile:
-		print_pdf(book, printer)
+		print_pdf(book, options.printer)
 
 	switchBackFromTempEnvironment(origDir, tempDir, options.output, book)
 	print('Done')
