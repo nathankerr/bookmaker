@@ -165,7 +165,7 @@ def createBook(paper, booktype, nopagenumbers, crop_boxes):
 ''')
 	else:
 		intermediate.write('''
-\setuplayout[footer=\\baselineskip]
+\setuplayout[footer=0mm]
 ''')
 
 	# general document setup
